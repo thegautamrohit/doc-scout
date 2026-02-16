@@ -1,4 +1,3 @@
-// ingestion/crawler/crawl.ts
 import { extractLinks } from "./extract";
 import { normalizeUrl } from "./normalize";
 import { isValidDocUrl } from "./filter";
@@ -6,10 +5,12 @@ import { CrawlOptions } from "./types";
 import { rateLimitter } from "./rate-limitter";
 import { getRobotsParser } from "./robots";
 import { saveCheckpoint, loadCheckpoint } from "./checkpoint";
+import { incrementPagesCrawled } from "@/db/sources";
 
 export async function crawlDocs(
   startUrl: string,
   options: CrawlOptions,
+  sourceId?: string,
 ): Promise<string[]> {
   const robots = await getRobotsParser(startUrl);
 
@@ -35,6 +36,10 @@ export async function crawlDocs(
 
     visited.add(normalized);
     results.push(normalized);
+
+    if (sourceId) {
+      incrementPagesCrawled(sourceId);
+    }
 
     if (results.length % 5 === 0) {
       saveCheckpoint({
@@ -70,15 +75,15 @@ export async function crawlDocs(
   return results;
 }
 
-const main = async (url:string) => {
-  const options: CrawlOptions = {
-    maxDepth: 3,
-    maxPages: 100,
-    allowedDomain: url,
-  };
+// const main = async (url: string) => {
+//   const options: CrawlOptions = {
+//     maxDepth: 3,
+//     maxPages: 100,
+//     allowedDomain: url,
+//   };
 
-  const results = await crawlDocs(url, options);
-  console.log(results);
-};
+//   const results = await crawlDocs(url, options);
+//   console.log(results);
+// };
 
-main("https://js.langchain.com");
+// main("https://docs.stripe.com/");

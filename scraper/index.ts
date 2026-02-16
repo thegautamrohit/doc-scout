@@ -1,4 +1,4 @@
-import { crawlDocs } from "../crawler/crawl";
+// import { crawlDocs } from "../crawler/crawl";
 import { Document } from "@langchain/core/documents";
 import * as cheerio from "cheerio";
 import { JSDOM } from "jsdom";
@@ -9,15 +9,15 @@ type ContentExtractor = (html: string, url: string) => string | null;
 
 const limit = pLimit(5);
 
-const getUrls = async (url: string) => {
-  const crawledUrls = await crawlDocs(url, {
-    maxDepth: 2,
-    maxPages: 3,
-    allowedDomain: url,
-  });
+// const getUrls = async (url: string) => {
+//   const crawledUrls = await crawlDocs(url, {
+//     maxDepth: 2,
+//     maxPages: 3,
+//     allowedDomain: url,
+//   });
 
-  return crawledUrls;
-};
+//   return crawledUrls;
+// };
 
 async function fetchRawHtml(url: string): Promise<string> {
   const res = await fetch(url, {
@@ -57,9 +57,7 @@ const fallbackExtractor: ContentExtractor = (html) => {
   return candidates.sort((a, b) => b.length - a.length)[0];
 };
 
-const createDocuments = async (url: string) => {
-  const urls = await getUrls(url);
-
+export const scrapeContent = async (urls: string[]) => {
   const docs = await Promise.all(
     urls.map((url) =>
       limit(async () => {
@@ -69,17 +67,22 @@ const createDocuments = async (url: string) => {
         const content = extractContent(html, url);
         if (!content) return null;
 
-        return new Document({
-          pageContent: content.replace(/\n{3,}/g, "\n\n").trim(),
-          metadata: { source: url },
-        });
+        return {
+          content: content.replace(/\n{3,}/g, "\n\n").trim(),
+          url,
+        };
+        // return new Document({
+        //   pageContent: content.replace(/\n{3,}/g, "\n\n").trim(),
+        //   metadata: { source: url },
+        // });
       }),
     ),
   );
 
-  return docs.filter(Boolean);
+  return docs.filter((doc) => doc !== null);
 };
 
-createDocuments("https://docs.langchain.com/").then((res) => {
-  console.log(res, "<<<<<<RESPONSE>>>>>>>");
-});
+// createDocuments(["https://docs.langchain.com/"]).then((res) => {
+//   console.log(res, "<<<<<<RESPONSE>>>>>>>");
+//   console.log(res.length);
+// });
